@@ -1,27 +1,36 @@
 import { useState } from "react";
 import server from "./server";
+import userWallet from "./accounts";
 
 function Transfer({ address, setBalance }) {
   const [sendAmount, setSendAmount] = useState("");
   const [recipient, setRecipient] = useState("");
 
-  const setValue = (setter) => (evt) => setter(evt.target.value);
+  console.log("address/sender = " + address);  
 
+  const setValue = (setter) => (evt) => setter(evt.target.value);
+ 
   async function transfer(evt) {
     evt.preventDefault();
 
-    try {
-      const {
-        data: { balance },
-      } = await server.post(`send`, {
-        sender: address,
-        amount: parseInt(sendAmount),
-        recipient,
-      });
-      setBalance(balance);
-    } catch (ex) {
-      alert(ex.response.data.message);
-    }
+    const message = {
+      amount: parseInt(sendAmount),
+      recipient,  
+    };
+
+    const signature = await userWallet.sign(message,address);
+    const transaction = {
+      message,
+      signature,
+    };
+
+      try {
+        const { data: { balance }, } = await server.post(`send`, transaction);
+        console.log("balance after sending transaction to server:" + balance)
+        setBalance(balance);
+      } catch (ex) {
+        alert(ex.response.data.message);
+      }
   }
 
   return (
@@ -40,7 +49,7 @@ function Transfer({ address, setBalance }) {
       <label>
         Recipient
         <input
-          placeholder="Type an address, for example: 0x2"
+          placeholder="Type an address, Ex: 0x48f086b50..."
           value={recipient}
           onChange={setValue(setRecipient)}
         ></input>
